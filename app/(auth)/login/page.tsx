@@ -19,12 +19,9 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  ShieldCheck,
   Zap,
   KeyRound,
   Check,
-  LogOut,
-  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,18 +73,10 @@ const DEMO_ROLES: DemoRole[] = [
   },
 ];
 
-interface AuthenticatedUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  avatarUrl?: string;
-  phone?: string;
-}
-
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get("from");
 
   const [email, setEmail] = useState("admin@rapone.com");
   const [password, setPassword] = useState("Admin@12345");
@@ -95,7 +84,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("admin");
-  const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUser | null>(null);
 
   const handleSelectRole = (role: DemoRole, autoSubmit: boolean = false) => {
     setEmail(role.email);
@@ -129,23 +117,14 @@ function LoginForm() {
       }
 
       toast.success(`Access Granted: Welcome ${data.user.name}`);
-      setAuthenticatedUser(data.user);
-      setLoading(false);
+      const destination = redirectTarget || data.redirectUrl || "/admin/dashboard";
+      router.push(destination);
+      router.refresh();
     } catch {
       setError("Unable to reach authentication server. Please check your internet connection.");
       toast.error("Network error during login");
       setLoading(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // ignore
-    }
-    setAuthenticatedUser(null);
-    toast.info("Session closed successfully");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -212,296 +191,205 @@ function LoginForm() {
         <div className="w-full max-w-md mx-auto">
           {/* The Glass Console Box */}
           <div className="relative rounded-3xl border border-slate-800/90 bg-slate-900/90 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),0_0_30px_rgba(99,102,241,0.15)] p-6 sm:p-8 space-y-6">
-            
-            {authenticatedUser ? (
-              /* Authenticated Station Cockpit Card */
-              <div className="space-y-5 animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                    </span>
-                    <h2 className="text-base font-bold text-white tracking-tight">
-                      Station Session Active
-                    </h2>
+            {/* Header */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-md">
+                    <KeyRound className="h-4 w-4" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    Verified
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    Command Center Access
+                  </h2>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Live Demo
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Select a pre-configured demo role below for instant 1-click access or enter your credentials.
+              </p>
+            </div>
+
+            {/* ⚡ One-Click Demo Role Selector */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> Quick Demo Role Switcher
+                </span>
+                <span className="text-[10px] text-slate-500">Auto-fills & ready</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                {DEMO_ROLES.map((role) => {
+                  const isSelected = selectedRole === role.id;
+                  const IconComponent = role.icon;
+
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => handleSelectRole(role, false)}
+                      className={`group relative text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? "bg-indigo-950/40 border-indigo-500/80 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                          : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                            role.colorScheme === "indigo"
+                              ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-400"
+                              : role.colorScheme === "amber"
+                              ? "bg-amber-500/15 border border-amber-500/30 text-amber-400"
+                              : "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                          }`}
+                        >
+                          <IconComponent className="h-4.5 w-4.5" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">{role.roleTitle}</span>
+                            <span
+                              className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
+                                role.colorScheme === "indigo"
+                                  ? "bg-indigo-500/20 text-indigo-300"
+                                  : role.colorScheme === "amber"
+                                  ? "bg-amber-500/20 text-amber-300"
+                                  : "bg-emerald-500/20 text-emerald-300"
+                              }`}
+                            >
+                              {role.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                            {role.name} • {role.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 pl-2 shrink-0">
+                        {isSelected ? (
+                          <span className="h-5 w-5 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 group-hover:text-slate-300 font-medium">
+                            Select
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Error Alert */}
+            {error && (
+              <Alert
+                variant="destructive"
+                className="py-2.5 px-3 bg-rose-500/10 border-rose-500/30 text-rose-300 text-xs rounded-xl"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Form Controls */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Workstation Email
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="admin@rapone.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setSelectedRole("");
+                  }}
+                  required
+                  disabled={loading}
+                  className="bg-slate-950/80 border-slate-800 text-white placeholder:text-slate-500 focus-visible:ring-indigo-500 h-10 text-xs font-medium rounded-xl transition-all"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" /> Station Password
+                  </Label>
+                  <span className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer">
+                    Demo Hash: Active
                   </span>
                 </div>
-
-                {/* User Profile Card */}
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-lg shadow-lg">
-                      {authenticatedUser.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-bold text-white truncate">
-                        {authenticatedUser.name}
-                      </h3>
-                      <p className="text-xs text-slate-400 truncate">
-                        {authenticatedUser.email}
-                      </p>
-                      <div className="mt-1">
-                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                          Role: {authenticatedUser.role}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Privileges Overview */}
-                <div className="space-y-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <Database className="h-3.5 w-3.5 text-cyan-400" /> Cloud Database
-                    </span>
-                    <span className="text-cyan-400 font-mono text-[11px] font-semibold">TiDB Cloud (Tokyo)</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Security Clearance
-                    </span>
-                    <span className="text-emerald-400 font-semibold text-[11px]">Level 4 (Full Access)</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <Truck className="h-3.5 w-3.5 text-indigo-400" /> Fleet Control
-                    </span>
-                    <span className="text-slate-200 font-semibold text-[11px]">142 Units Online</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="space-y-2 pt-2">
-                  <Button
-                    type="button"
-                    onClick={() => setAuthenticatedUser(null)}
-                    className="w-full h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 rounded-xl transition-all gap-1.5 cursor-pointer"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>Switch Role / Test Another Account</span>
-                  </Button>
-
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setSelectedRole("");
+                    }}
+                    required
+                    disabled={loading}
+                    className="bg-slate-950/80 border-slate-800 text-white placeholder:text-slate-500 focus-visible:ring-indigo-500 h-10 text-xs font-medium rounded-xl pr-10 transition-all font-mono"
+                  />
                   <button
                     type="button"
-                    onClick={handleSignOut}
-                    className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                   >
-                    <LogOut className="h-3.5 w-3.5 text-rose-400" />
-                    <span>Sign Out Session</span>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
-            ) : (
-              /* Login Form State */
-              <>
-                {/* Header */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-md">
-                        <KeyRound className="h-4 w-4" />
-                      </div>
-                      <h2 className="text-lg font-bold text-white tracking-tight">
-                        Command Center Access
-                      </h2>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Live Demo
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Select a pre-configured demo role below for instant 1-click access or enter your credentials.
-                  </p>
-                </div>
 
-                {/* ⚡ One-Click Demo Role Selector */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> Quick Demo Role Switcher
-                    </span>
-                    <span className="text-[10px] text-slate-500">Auto-fills & ready</span>
-                  </div>
+              {/* Primary Submit Button */}
+              <div className="space-y-2 pt-1">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/30 rounded-xl transition-all gap-2 cursor-pointer"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Authenticating Session...
+                    </>
+                  ) : (
+                    <>
+                      Launch Command Center <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
 
-                  <div className="grid grid-cols-1 gap-2">
-                    {DEMO_ROLES.map((role) => {
-                      const isSelected = selectedRole === role.id;
-                      const IconComponent = role.icon;
+                {/* 1-Click Fast Track Button */}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    const activeRoleObj =
+                      DEMO_ROLES.find((r) => r.id === selectedRole) || DEMO_ROLES[0];
+                    handleSelectRole(activeRoleObj, true);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Zap className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>Instant 1-Click Demo Login</span>
+                </button>
+              </div>
+            </form>
 
-                      return (
-                        <button
-                          key={role.id}
-                          type="button"
-                          onClick={() => handleSelectRole(role, false)}
-                          className={`group relative text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                            isSelected
-                              ? "bg-indigo-950/40 border-indigo-500/80 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                              : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                                role.colorScheme === "indigo"
-                                  ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-400"
-                                  : role.colorScheme === "amber"
-                                  ? "bg-amber-500/15 border border-amber-500/30 text-amber-400"
-                                  : "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
-                              }`}
-                            >
-                              <IconComponent className="h-4.5 w-4.5" />
-                            </div>
-
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-white">{role.roleTitle}</span>
-                                <span
-                                  className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
-                                    role.colorScheme === "indigo"
-                                      ? "bg-indigo-500/20 text-indigo-300"
-                                      : role.colorScheme === "amber"
-                                      ? "bg-amber-500/20 text-amber-300"
-                                      : "bg-emerald-500/20 text-emerald-300"
-                                  }`}
-                                >
-                                  {role.badge}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                                {role.name} • {role.email}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 pl-2 shrink-0">
-                            {isSelected ? (
-                              <span className="h-5 w-5 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow">
-                                <Check className="h-3 w-3" />
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 group-hover:text-slate-300 font-medium">
-                                Select
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Error Alert */}
-                {error && (
-                  <Alert
-                    variant="destructive"
-                    className="py-2.5 px-3 bg-rose-500/10 border-rose-500/30 text-rose-300 text-xs rounded-xl"
-                  >
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Form Controls */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" /> Workstation Email
-                    </Label>
-                    <Input
-                      type="email"
-                      placeholder="admin@rapone.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setSelectedRole("");
-                      }}
-                      required
-                      disabled={loading}
-                      className="bg-slate-950/80 border-slate-800 text-white placeholder:text-slate-500 focus-visible:ring-indigo-500 h-10 text-xs font-medium rounded-xl transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-slate-400" /> Station Password
-                      </Label>
-                      <span className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer">
-                        Demo Hash: Active
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••••••"
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value);
-                          setSelectedRole("");
-                        }}
-                        required
-                        disabled={loading}
-                        className="bg-slate-950/80 border-slate-800 text-white placeholder:text-slate-500 focus-visible:ring-indigo-500 h-10 text-xs font-medium rounded-xl pr-10 transition-all font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Primary Submit Button */}
-                  <div className="space-y-2 pt-1">
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full h-11 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/30 rounded-xl transition-all gap-2 cursor-pointer"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" /> Authenticating Session...
-                        </>
-                      ) : (
-                        <>
-                          Launch Command Center <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-
-                    {/* 1-Click Fast Track Button */}
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => {
-                        const activeRoleObj =
-                          DEMO_ROLES.find((r) => r.id === selectedRole) || DEMO_ROLES[0];
-                        handleSelectRole(activeRoleObj, true);
-                      }}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Zap className="h-3.5 w-3.5 text-cyan-400" />
-                      <span>Instant 1-Click Demo Login</span>
-                    </button>
-                  </div>
-                </form>
-
-                {/* Secure Session Info */}
-                <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Isolated Demo Sandbox • Real-time DB Sync • Zero Installation</span>
-                </div>
-              </>
-            )}
+            {/* Secure Session Info */}
+            <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Isolated Demo Sandbox • Real-time DB Sync • Zero Installation</span>
+            </div>
           </div>
         </div>
       </main>
