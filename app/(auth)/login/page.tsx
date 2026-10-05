@@ -225,7 +225,7 @@ function LoginForm() {
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Column: Demo Presentation & Live Telemetry Feature Showcase */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-7">
+          <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col justify-between space-y-7">
             {/* Header Badge & Title */}
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/60 shadow-inner">
@@ -382,7 +382,7 @@ function LoginForm() {
           </div>
 
           {/* Right Column: Demo Station & Login Command Console */}
-          <div className="lg:col-span-5 w-full max-w-md mx-auto">
+          <div className="order-1 lg:order-2 lg:col-span-5 w-full max-w-md mx-auto">
             {/* The Glass Console Box */}
             <div className="relative rounded-3xl border border-slate-800/90 bg-slate-900/90 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),0_0_30px_rgba(99,102,241,0.15)] p-6 sm:p-7 space-y-6">
               
